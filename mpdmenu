@@ -8,18 +8,18 @@ if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 all_name='[all]'
 
 d_artist() {
-  mpc list albumartist | shuf | dmenu -i
+  beet ls -af '$albumartist' | uniq | shuf | dmenu -i
 }
 
 d_album() {
   local albumartist="$1"
   local albums
 
-  mapfile -t albums < <(mpc list album albumartist "$albumartist")
+  mapfile -t albums < <(beet ls -a original_year+ -f "\$album [\$releasegroupdisambig]" "albumartist:$albumartist" | sed 's/\[\]//')
   if (( ${#albums[@]} > 1 )) ; then
     {
+      printf '%s\n' "${albums[@]}"
       printf '%s\n' "$all_name"
-      printf '%s\n' "${albums[@]}" | sort -f
     } | dmenu -i
   else
     # We only have one album, so just use that
@@ -29,28 +29,23 @@ d_album() {
 
 case "$1" in
   artist)
-    # TODO This definitely does not work for Weezer
     albumartist=$(d_artist) || exit 1
     album=$(d_album "$albumartist") || exit 2
+    disambig=$(echo ${album} | sed -E 's/.*\[(.*)\]$/\1/') # Hittar ingenting
+    album=$(echo ${album} | sed -e "s/\[$disambig\]\$//")
 
     # TODO Shift+return to append?
     mpc clear
     if [[ $album == "$all_name" ]]; then
-      mpc find albumartist "$albumartist" | sort | mpc add
+      beet play -a 'albumartist:=~'${albumartist}
     else
-      mpc find albumartist "$albumartist" album "$album" | sort | mpc add
-    fi
-
-    mpc play >/dev/null
-    ;;
-  album)
-    album=$(d_album "$albumartist") || exit 1
-
-    mpc clear
-    if [[ $album == "$all_name" ]]; then
-      mpc find albumartist "$albumartist" | sort | mpc add
-    else
-      mpc find album "$album" | sort | mpc add
+      if [[ ${album} == ${disambig} ]]; then
+        echo "${disambig} : ${disambig}"
+        beet play -a "albumartist:=~${albumartist}" "album:=~${album}"
+      else
+        echo "${disambig}"
+        beet play -a "albumartist:=~${albumartist}" "album:=~${album}" "releasegroupdisambig:=~${disambig}"
+      fi
     fi
 
     mpc play >/dev/null
