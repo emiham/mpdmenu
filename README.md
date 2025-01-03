@@ -1,10 +1,5 @@
 Simple dmenu frontend for MPD.
 
-# Arguments
-
-Pass mpdmenu arguments first, followed by any dmenu arguments. They are separated by `::`. For example:
-
-    mpdmenu -p :: -sb '#000000'
-
-`-l` is library mode (default), which descends artists and albums. `-p` is
-playlist mode, which selects a track from the current playlist.
+This branch is currently testing [beets](https://github.com/beetbox/beets) for
+album/artist lookup, to be able to disambiguate between albums with the same
+name.
